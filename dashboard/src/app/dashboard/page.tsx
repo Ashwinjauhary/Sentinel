@@ -17,7 +17,7 @@ import { ShieldAlert, Activity, Settings2, ShieldCheck, Zap, Server, LogOut } fr
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 
-const API_URL = "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 type Incident = {
   id: string;

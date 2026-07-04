@@ -28,6 +28,27 @@ It uses a hybrid approach:
 
 ## Quick Start
 
+### Running Locally
+To test end-to-end functionality locally, consult the included [Getting Started Guide](docs/GETTING_STARTED.md).
+
+## Production Deployment (Render + Vercel)
+
+Sentinel is designed to be easily deployed to PaaS providers like Render and Vercel. 
+
+### Backend (Render)
+A `render.yaml` file is included in the root of the repository for automated Infrastructure-as-Code deployment. 
+1. Create a PostgreSQL database on Render.
+2. Deploy the `sentinel-backend` web service from the repository.
+3. Configure `GROQ_API_KEY` and `CORS_ORIGINS` in your Render environment variables. 
+
+### Dashboard (Vercel)
+A `vercel.json` file is included in the `dashboard` directory for Next.js deployment.
+1. Import the repository into Vercel.
+2. **Crucial Step:** Set the "Root Directory" to `dashboard` (as this is a monorepo).
+3. Add the `NEXT_PUBLIC_API_URL` environment variable in Vercel's project settings, pointing to your deployed Render backend URL (e.g. `https://sentinel-backend.onrender.com`).
+
+---
+## Project Origins:
 We have created a one-command setup script to get you up and running in under 2 minutes.
 
 **Please see the full guide here: [Getting Started Guide](docs/GETTING_STARTED.md)**

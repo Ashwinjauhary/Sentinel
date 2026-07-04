@@ -126,9 +126,8 @@ class TestCrossTenantAccess:
 
     def test_incidents_cross_tenant_no_auth_on_get(self, client, test_app, db_session):
         """
-        /incidents and /stats are currently unauthenticated GET endpoints.
-        Anyone who knows an app_id can read another app's incidents.
-        This is a documented security gap.
+        /incidents and /stats are now authenticated.
+        Ensure that unauthenticated requests are rejected.
         """
         # Create a second app
         other_app = App(
@@ -142,21 +141,14 @@ class TestCrossTenantAccess:
 
         # Try to read test_app's incidents using NO auth header at all
         res = client.get(f"/incidents?app_id={test_app.id}")
-        assert res.status_code == 200, (
-            "Expected 200 — /incidents is currently unauthenticated"
-        )
-        print(
-            "\n[SECURITY GAP] /incidents and /stats endpoints are unauthenticated. "
-            "Cross-tenant reads are possible if app_id is known."
+        assert res.status_code == 401, (
+            "Expected 401 — /incidents is now authenticated"
         )
 
     def test_stats_cross_tenant_no_auth_on_get(self, client, test_app, db_session):
-        """Same gap applies to /stats."""
+        """Same check applies to /stats."""
         res = client.get(f"/stats?app_id={test_app.id}")
-        assert res.status_code == 200
-        print(
-            "\n[SECURITY GAP] /stats endpoint is unauthenticated."
-        )
+        assert res.status_code == 401
 
 
 # ---------------------------------------------------------------------------

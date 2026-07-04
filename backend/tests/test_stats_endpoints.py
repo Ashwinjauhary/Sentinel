@@ -42,39 +42,48 @@ def seed_data(db_session):
     db_session.bulk_save_objects(incidents)
     db_session.commit()
     
-    return {"app1": app1.id, "app2": app2.id, "today": today.strftime('%Y-%m-%d'), "yesterday": yesterday.strftime('%Y-%m-%d'), "two_days_ago": two_days_ago.strftime('%Y-%m-%d')}
+    return {
+        "app1": app1.id, "app1_key": app1.api_key, 
+        "app2": app2.id, "app2_key": app2.api_key, 
+        "today": today.strftime('%Y-%m-%d'), "yesterday": yesterday.strftime('%Y-%m-%d'), "two_days_ago": two_days_ago.strftime('%Y-%m-%d')}
 
 
 def test_incidents_pagination(client, seed_data):
     """1. Pagination works correctly"""
     app_id = seed_data["app1"]
+    headers = {"Authorization": f"Bearer {seed_data['app1_key']}"}
     
-    res1 = client.get(f"/incidents?app_id={app_id}&limit=4&offset=0")
+    res1 = client.get(f"/incidents?app_id={app_id}&limit=4&offset=0", headers=headers)
     assert len(res1.json()["incidents"]) == 4
     assert res1.json()["total"] == 10
     
-    res2 = client.get(f"/incidents?app_id={app_id}&limit=4&offset=4")
+    res2 = client.get(f"/incidents?app_id={app_id}&limit=4&offset=4", headers=headers)
     assert len(res2.json()["incidents"]) == 4
     
-    res3 = client.get(f"/incidents?app_id={app_id}&limit=4&offset=8")
+    res3 = client.get(f"/incidents?app_id={app_id}&limit=4&offset=8", headers=headers)
     assert len(res3.json()["incidents"]) == 2
 
 
 def test_incidents_tenant_isolation(client, seed_data):
     """2. Filtering by app_id only returns that app's incidents, never another app's"""
     app2_id = seed_data["app2"]
+    headers = {"Authorization": f"Bearer {seed_data['app2_key']}"}
     
-    res = client.get(f"/incidents?app_id={app2_id}")
+    res = client.get(f"/incidents?app_id={app2_id}", headers=headers)
     incidents = res.json()["incidents"]
     assert len(incidents) == 3
     for inc in incidents:
         assert inc["app_id"] == str(app2_id)
 
 
-def test_incidents_empty_set(client):
+def test_incidents_empty_set(client, db_session):
     """3. Empty result set (new app with no incidents) returns an empty list, not an error"""
-    new_app_id = str(uuid.uuid4())
-    res = client.get(f"/incidents?app_id={new_app_id}")
+    new_app = App(id=str(uuid.uuid4()), name="Empty", api_key="empty_key", threshold=40)
+    db_session.add(new_app)
+    db_session.commit()
+    
+    headers = {"Authorization": f"Bearer {new_app.api_key}"}
+    res = client.get(f"/incidents?app_id={new_app.id}", headers=headers)
     assert res.status_code == 200
     assert res.json()["incidents"] == []
     assert res.json()["total"] == 0
@@ -83,7 +92,8 @@ def test_incidents_empty_set(client):
 def test_stats_daily_scores(client, seed_data):
     """1. daily_scores aggregation returns correct averages for a seeded set of incidents"""
     app_id = seed_data["app1"]
-    res = client.get(f"/stats?app_id={app_id}")
+    headers = {"Authorization": f"Bearer {seed_data['app1_key']}"}
+    res = client.get(f"/stats?app_id={app_id}", headers=headers)
     assert res.status_code == 200
     daily_scores = res.json()["daily_scores"]
     
@@ -103,7 +113,8 @@ def test_stats_daily_scores(client, seed_data):
 def test_stats_attack_type_counts(client, seed_data):
     """2. attack_type_counts correctly tallies injection vs jailbreak vs pii flags"""
     app_id = seed_data["app1"]
-    res = client.get(f"/stats?app_id={app_id}")
+    headers = {"Authorization": f"Bearer {seed_data['app1_key']}"}
+    res = client.get(f"/stats?app_id={app_id}", headers=headers)
     counts = res.json()["attack_type_counts"]
     
     # Injection: #1(T), #5(T), #9(T) -> 3
@@ -114,10 +125,14 @@ def test_stats_attack_type_counts(client, seed_data):
     assert counts["pii"] == 4
 
 
-def test_stats_empty_app(client):
-    """3. Requesting stats for a non-existent app_id returns an empty/zeroed response"""
-    new_app_id = str(uuid.uuid4())
-    res = client.get(f"/stats?app_id={new_app_id}")
+def test_stats_empty_app(client, db_session):
+    """3. Requesting stats for an app with no incidents returns an empty/zeroed response"""
+    new_app = App(id=str(uuid.uuid4()), name="Empty", api_key="empty_key", threshold=40)
+    db_session.add(new_app)
+    db_session.commit()
+    
+    headers = {"Authorization": f"Bearer {new_app.api_key}"}
+    res = client.get(f"/stats?app_id={new_app.id}", headers=headers)
     assert res.status_code == 200
     data = res.json()
     assert data["daily_scores"] == []
