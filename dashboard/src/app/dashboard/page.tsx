@@ -65,7 +65,7 @@ export default function DashboardPage() {
     setThreshold(newVal);
     await fetch(`${API_URL}/apps/${APP_ID}/threshold`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer test-api-key" },
       body: JSON.stringify({ threshold: newVal }),
     }).catch(console.error);
   };

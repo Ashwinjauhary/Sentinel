@@ -209,10 +209,14 @@ def get_stats(app_id: str, range: str = "7d", db: Session = Depends(get_db)):
     }
 
 @fastapi_app.patch("/apps/{id}/threshold")
-def update_threshold(id: str, req: ThresholdUpdateRequest, db: Session = Depends(get_db)):
-    target_app = db.query(App).filter(App.id == id).first()
+def update_threshold(id: str, req: ThresholdUpdateRequest, db: Session = Depends(get_db), auth_header: str = Depends(api_key_header)):
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    api_key = auth_header.split(" ")[1]
+
+    target_app = db.query(App).filter(App.id == id, App.api_key == api_key).first()
     if not target_app:
-        raise HTTPException(status_code=404, detail="App not found")
+        raise HTTPException(status_code=401, detail="Invalid App ID or API Key")
         
     target_app.threshold = req.threshold
     db.commit()
