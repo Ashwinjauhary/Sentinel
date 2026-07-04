@@ -13,4 +13,4 @@ RUN python -m spacy download en_core_web_sm
 COPY . .
 
 # Start the FastAPI server using uvicorn, binding to the platform's dynamic PORT
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-7860}"]
