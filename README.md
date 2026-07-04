@@ -4,6 +4,10 @@
 
 Sentinel is an open-source, framework-agnostic middleware layer designed to protect AI Agents and Large Language Models (LLMs) from prompt injections, jailbreaks, and PII (Personally Identifiable Information) leakage.
 
+<p align="center">
+  <img src="dashboard-preview.png" alt="Sentinel Dashboard showing live incidents" width="800">
+</p>
+
 ## Overview
 Traditional application security tools (WAFs, SQL injection filters) fail against LLM attacks because the payloads are written in natural language, not code. Sentinel sits between your users and your AI model, analyzing every message in real-time.
 
