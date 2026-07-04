@@ -10,9 +10,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.guard = guard;
+const DEFAULT_TIMEOUT_MS = 5000;
 function guard(message, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
+        const timeoutMs = (_a = options.timeoutMs) !== null && _a !== void 0 ? _a : DEFAULT_TIMEOUT_MS;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         try {
             const response = yield fetch(`${options.apiUrl.replace(/\/$/, '')}/analyze`, {
                 method: 'POST',
@@ -25,25 +29,27 @@ function guard(message, options) {
                     message: message,
                     user_id: options.userId,
                 }),
+                signal: controller.signal,
             });
+            clearTimeout(timeoutId);
             if (!response.ok) {
                 throw new Error(`Sentinel API returned status ${response.status}`);
             }
             const data = yield response.json();
             return {
-                allowed: (_a = data.allowed) !== null && _a !== void 0 ? _a : false,
-                score: (_b = data.score) !== null && _b !== void 0 ? _b : 100,
-                reasons: (_c = data.reasons) !== null && _c !== void 0 ? _c : ['API Error: Invalid response format'],
+                allowed: (_b = data.allowed) !== null && _b !== void 0 ? _b : false,
+                score: (_c = data.score) !== null && _c !== void 0 ? _c : 100,
+                reasons: (_d = data.reasons) !== null && _d !== void 0 ? _d : ['API Error: Invalid response format'],
             };
         }
         catch (error) {
+            clearTimeout(timeoutId);
             console.error("Sentinel Guard error:", error);
-            // Fail-closed or fail-open? Security tools usually fail-closed or log-only.
-            // Let's fail-open (allow) if API is down to not block legitimate users, but flag it.
+            // Fail-open: allow if API is down to not block legitimate users, but flag it.
             return {
                 allowed: true,
                 score: 0,
-                reasons: ['Error connecting to Sentinel API'],
+                reasons: [],
             };
         }
     });

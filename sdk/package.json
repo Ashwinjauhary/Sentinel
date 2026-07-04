@@ -1,9 +1,13 @@
 {
-  "name": "sentinel-guard",
+  "name": "@ashwinjauhary/sentinel-guard",
   "version": "1.0.0",
   "description": "SDK for Sentinel AI Agent Security & Behavior Auditing Platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run"
@@ -12,10 +16,16 @@
     "ai",
     "security",
     "llm",
+    "prompt-injection",
+    "jailbreak-detection",
     "sentinel"
   ],
   "author": "Ashwin Jauhary",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ashwinjauhary/Sentinel.git"
+  },
   "type": "commonjs",
   "devDependencies": {
     "@types/node": "^26.1.0",

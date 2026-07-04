@@ -3,6 +3,8 @@ export interface GuardOptions {
     appId: string;
     apiKey: string;
     userId?: string;
+    /** Timeout in milliseconds. Defaults to 5000 (5 seconds). */
+    timeoutMs?: number;
 }
 export interface GuardResponse {
     allowed: boolean;

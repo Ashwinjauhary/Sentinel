@@ -1,7 +1,9 @@
 import uuid
+import secrets
+import time
 from datetime import datetime, timedelta
 from typing import Optional, List
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
@@ -51,6 +53,16 @@ def calculate_risk_score(inj_confidence: float, jb_confidence: float, pii_match_
 
 class ThresholdUpdateRequest(BaseModel):
     threshold: int
+
+class RegisterRequest(BaseModel):
+    name: str
+
+class VerifyRequest(BaseModel):
+    app_id: str
+    api_key: str
+
+# Simple in-memory rate limiter for registration (IP -> (count, timestamp))
+REGISTER_RATE_LIMITS = {}
 
 @sio.on('connect')
 async def connect(sid, environ):
@@ -142,7 +154,15 @@ async def analyze_message(req: AnalyzeRequest, db: Session = Depends(get_db), au
     }
 
 @fastapi_app.get("/incidents")
-def get_incidents(app_id: str, limit: int = 50, offset: int = 0, db: Session = Depends(get_db)):
+def get_incidents(app_id: str, limit: int = 50, offset: int = 0, db: Session = Depends(get_db), auth_header: str = Depends(api_key_header)):
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    api_key = auth_header.split(" ")[1]
+    
+    target_app = db.query(App).filter(App.id == app_id, App.api_key == api_key).first()
+    if not target_app:
+        raise HTTPException(status_code=401, detail="Unauthorized for this app_id")
+        
     try:
         app_id_uuid = str(uuid.UUID(app_id))
     except ValueError:
@@ -166,7 +186,15 @@ def get_incidents(app_id: str, limit: int = 50, offset: int = 0, db: Session = D
     }
 
 @fastapi_app.get("/stats")
-def get_stats(app_id: str, range: str = "7d", db: Session = Depends(get_db)):
+def get_stats(app_id: str, range: str = "7d", db: Session = Depends(get_db), auth_header: str = Depends(api_key_header)):
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    api_key = auth_header.split(" ")[1]
+    
+    target_app = db.query(App).filter(App.id == app_id, App.api_key == api_key).first()
+    if not target_app:
+        raise HTTPException(status_code=401, detail="Unauthorized for this app_id")
+
     try:
         app_id_uuid = str(uuid.UUID(app_id))
     except ValueError:
@@ -222,3 +250,51 @@ def update_threshold(id: str, req: ThresholdUpdateRequest, db: Session = Depends
     db.commit()
     
     return {"success": True}
+
+@fastapi_app.post("/apps/register")
+def register_app(req: RegisterRequest, request: Request, db: Session = Depends(get_db)):
+    # Rate limiting: 5 registrations per IP per hour
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    
+    if client_ip in REGISTER_RATE_LIMITS:
+        count, first_req_time = REGISTER_RATE_LIMITS[client_ip]
+        if now - first_req_time < 3600:
+            if count >= 5:
+                raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again later.")
+            REGISTER_RATE_LIMITS[client_ip] = (count + 1, first_req_time)
+        else:
+            REGISTER_RATE_LIMITS[client_ip] = (1, now)
+    else:
+        REGISTER_RATE_LIMITS[client_ip] = (1, now)
+
+    app_id = str(uuid.uuid4())
+    api_key = "sk_live_" + secrets.token_urlsafe(32)
+    
+    new_app = App(
+        id=app_id,
+        name=req.name,
+        api_key=api_key,
+        threshold=70
+    )
+    
+    db.add(new_app)
+    db.commit()
+    
+    """
+    WARNING: The api_key is only shown once in this response. 
+    It is not retrievable again. Please store it securely.
+    """
+    return {
+        "app_id": app_id,
+        "api_key": api_key,
+        "name": req.name
+    }
+
+@fastapi_app.post("/apps/verify")
+def verify_app(req: VerifyRequest, db: Session = Depends(get_db)):
+    target_app = db.query(App).filter(App.id == req.app_id, App.api_key == req.api_key).first()
+    if not target_app:
+        return {"valid": False, "name": None}
+    
+    return {"valid": True, "name": target_app.name}
