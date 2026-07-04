@@ -1,3 +1,12 @@
+---
+title: Sentinel
+emoji: 🛡️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # Sentinel: AI Security Middleware
 
 > **Sentinel is self-hosted — clone this repo, run `./setup.sh`, and you're running your own instance. No shared/hosted version is provided.**
