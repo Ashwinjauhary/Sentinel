@@ -11,4 +11,8 @@ export interface GuardResponse {
     score: number;
     reasons: string[];
 }
-export declare function guard(message: string, options: GuardOptions): Promise<GuardResponse>;
+export declare class SentinelGuard {
+    private options;
+    constructor(options: GuardOptions);
+    guard(message: string, userId?: string): Promise<GuardResponse>;
+}
