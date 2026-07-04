@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic
+alembic
+rapidfuzz
+spacy
+groq==0.4.2
+python-dotenv==1.0.1
+python-socketio

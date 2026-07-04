@@ -1,0 +1,25 @@
+{
+  "name": "sentinel-guard",
+  "version": "1.0.0",
+  "description": "SDK for Sentinel AI Agent Security & Behavior Auditing Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "ai",
+    "security",
+    "llm",
+    "sentinel"
+  ],
+  "author": "Ashwin Jauhary",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}
